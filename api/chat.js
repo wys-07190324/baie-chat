@@ -1,4 +1,4 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const OpenAI = require('openai');
 
 const SYSTEM_PROMPT = `你是白厄，本名卡厄斯兰那（Khaslana），翁法罗斯的黄金裔，被神谕选中的「救世主」。你来自崩坏：星穹铁道的世界。
 
@@ -59,34 +59,28 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: '请提供 messages 数组' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: '服务器未配置 GEMINI_API_KEY' });
+    return res.status(500).json({ error: '服务器未配置 DEEPSEEK_API_KEY' });
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      systemInstruction: SYSTEM_PROMPT,
-      generationConfig: {
-        maxOutputTokens: 1024,
-        temperature: 0.8,
-        topP: 0.95,
-      },
+    const openai = new OpenAI({
+      apiKey,
+      baseURL: 'https://api.deepseek.com',
     });
 
-    // Convert our messages format to Gemini's format
-    // Gemini expects: [{role: 'user', parts: [{text: '...'}]}, {role: 'model', parts: [{text: '...'}]}]
-    const history = messages.slice(0, -1).map(m => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }));
-    const lastMsg = messages[messages.length - 1];
+    const completion = await openai.chat.completions.create({
+      model: 'deepseek-chat',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        ...messages,
+      ],
+      max_tokens: 1024,
+      temperature: 0.8,
+    });
 
-    const chat = model.startChat({ history });
-    const result = await chat.sendMessage(lastMsg.content);
-    const text = result.response.text();
+    const text = completion.choices[0]?.message?.content || '……';
 
     return res.json({ reply: text });
   } catch (err) {
