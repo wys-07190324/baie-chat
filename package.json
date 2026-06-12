@@ -6,6 +6,6 @@
     "build": "echo 'static'"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.21.0"
+    "openai": "^4.73.0"
   }
 }
