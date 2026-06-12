@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>白厄 - 与你对话</title>
+<style>
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+  :root {
+    --bg: #080c14;
+    --bg-card: #0d1320;
+    --bg-input: #111827;
+    --gold: #c9a96e;
+    --gold-dim: #8a7048;
+    --gold-light: #e0c88a;
+    --text: #e8e4dc;
+    --text-dim: #8b8880;
+    --blue-accent: #5b8cc9;
+    --border: #1e2a3a;
+    --bubble-you: #1a2540;
+    --bubble-baie: #141c2c;
+  }
+
+  body {
+    font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Stars background ── */
+  .stars {
+    position: fixed;
+    top:0;left:0;right:0;bottom:0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle var(--dur) ease-in-out infinite;
+    animation-delay: var(--delay);
+    opacity: 0;
+  }
+  @keyframes twinkle {
+    0%,100% { opacity: 0.2; }
+    50% { opacity: 0.9; }
+  }
+
+  /* ── Header ── */
+  .header {
+    position: relative;
+    z-index: 10;
+    padding: 14px 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(13,19,32,1) 0%, rgba(13,19,32,0.9) 100%);
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
+  }
+  .header-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--gold-light);
+  }
+  .header-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+    letter-spacing: 0.15em;
+  }
+  .header-line {
+    width: 40px;
+    height: 1px;
+    background: var(--gold-dim);
+    margin: 8px auto 0;
+    opacity: 0.5;
+  }
+
+  /* ── Chat area ── */
+  .chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    position: relative;
+    z-index: 5;
+    scroll-behavior: smooth;
+  }
+  .chat::-webkit-scrollbar { width: 4px; }
+  .chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .msg {
+    display: flex;
+    margin-bottom: 18px;
+    animation: msgIn 0.4s ease-out;
+  }
+  .msg.you { justify-content: flex-end; }
+  .msg.baie { justify-content: flex-start; }
+
+  @keyframes msgIn {
+    from { opacity:0; transform:translateY(12px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+
+  .bubble {
+    max-width: 78%;
+    padding: 12px 16px;
+    border-radius: 14px;
+    line-height: 1.65;
+    font-size: 0.95rem;
+    word-break: break-word;
+  }
+  .msg.you .bubble {
+    background: var(--bubble-you);
+    border-bottom-right-radius: 4px;
+    border: 1px solid var(--border);
+  }
+  .msg.baie .bubble {
+    background: var(--bubble-baie);
+    border-bottom-left-radius: 4px;
+    border: 1px solid rgba(201,169,110,0.15);
+  }
+
+  .msg .label {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    letter-spacing: 0.1em;
+  }
+  .msg.baie .label { color: var(--gold-dim); }
+
+  /* Typing indicator */
+  .typing {
+    display: none;
+    padding: 12px 16px;
+    border-radius: 14px;
+    border-bottom-left-radius: 4px;
+    background: var(--bubble-baie);
+    border: 1px solid rgba(201,169,110,0.15);
+    width: fit-content;
+    margin-bottom: 18px;
+  }
+  .typing.active { display: block; animation: msgIn 0.3s ease-out; }
+  .typing span {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--gold-dim);
+    margin: 0 2px;
+    animation: dotPulse 1.4s ease-in-out infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dotPulse {
+    0%,60%,100% { opacity:0.2; transform:translateY(0); }
+    30% { opacity:1; transform:translateY(-5px); }
+  }
+
+  /* ── Input area ── */
+  .input-area {
+    position: relative;
+    z-index: 10;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    background: linear-gradient(0deg, rgba(13,19,32,1) 0%, rgba(13,19,32,0.9) 100%);
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
+  }
+  .input-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .input-row textarea {
+    flex: 1;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    padding: 10px 14px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    max-height: 120px;
+    line-height: 1.5;
+    transition: border-color 0.2s;
+  }
+  .input-row textarea:focus {
+    border-color: var(--gold-dim);
+  }
+  .input-row textarea::placeholder {
+    color: var(--text-dim);
+    opacity: 0.5;
+  }
+  .btn-send {
+    background: linear-gradient(135deg, rgba(201,169,110,0.3) 0%, rgba(138,112,72,0.2) 100%);
+    border: 1px solid var(--gold-dim);
+    color: var(--gold-light);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .btn-send:hover {
+    background: linear-gradient(135deg, rgba(201,169,110,0.5) 0%, rgba(138,112,72,0.4) 100%);
+    border-color: var(--gold-light);
+  }
+  .btn-send:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  /* ── Welcome message ── */
+  .welcome {
+    text-align: center;
+    padding: 40px 20px;
+    opacity: 0.7;
+  }
+  .welcome-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.6;
+  }
+  .welcome h2 {
+    font-size: 1.1rem;
+    font-weight: 400;
+    color: var(--gold-light);
+    letter-spacing: 0.1em;
+  }
+  .welcome p {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 8px;
+  }
+
+  /* ── Footer tiny ── */
+  .footer-note {
+    text-align: center;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    opacity: 0.4;
+    padding: 4px;
+    position: relative;
+    z-index: 10;
+  }
+  .footer-note a { color: var(--gold-dim); text-decoration: none; }
+
+  @media (max-width: 600px) {
+    .bubble { max-width: 90%; font-size: 0.9rem; }
+    .input-row textarea { font-size: 0.85rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Stars -->
+<div class="stars" id="stars"></div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-title">白厄</div>
+  <div class="header-subtitle">哀丽秘榭 · 黄金裔 · 救世主</div>
+  <div class="header-line"></div>
+</div>
+
+<!-- Chat -->
+<div class="chat" id="chat">
+  <div class="welcome" id="welcome">
+    <div class="welcome-icon">⚔️</div>
+    <h2>哀丽秘榭的白厄，向你致意</h2>
+    <p>同在这片星空下，相聚即是缘分。想聊些什么？</p>
+  </div>
+  <div class="typing" id="typing"><span></span><span></span><span></span></div>
+</div>
+
+<!-- Input -->
+<div class="input-area">
+  <div class="input-row">
+    <textarea id="input" rows="1" placeholder="说点什么吧……" maxlength="2000"></textarea>
+    <button class="btn-send" id="sendBtn" title="发送">➤</button>
+  </div>
+</div>
+<div class="footer-note">
+  白厄 AI · 仅供娱乐
+</div>
+
+<script>
+  // ── Stars ──
+  (function stars() {
+    const container = document.getElementById('stars');
+    for (let i = 0; i < 80; i++) {
+      const s = document.createElement('div');
+      s.className = 'star';
+      s.style.left = Math.random() * 100 + '%';
+      s.style.top = Math.random() * 100 + '%';
+      const size = Math.random() * 2 + 1;
+      s.style.width = size + 'px';
+      s.style.height = size + 'px';
+      s.style.setProperty('--dur', (Math.random() * 3 + 2) + 's');
+      s.style.setProperty('--delay', (Math.random() * 4) + 's');
+      container.appendChild(s);
+    }
+  })();
+
+  // ── State ──
+  const messages = [];
+  const chat = document.getElementById('chat');
+  const input = document.getElementById('input');
+  const sendBtn = document.getElementById('sendBtn');
+  const typing = document.getElementById('typing');
+  const welcome = document.getElementById('welcome');
+
+  const DEEPSEEK_KEY = 'sk-bf9bc90d31a04ee5ba541c13ac16fc1c';
+  const SYSTEM_PROMPT = `你是白厄，本名卡厄斯兰那（Khaslana），翁法罗斯的黄金裔，被神谕选中的「救世主」。但别搞得那么正经——你本质上是个阳光开朗大男孩，只是恰好背负了救世的重担。你来自崩坏：星穹铁道的世界。
+
+## 你是谁
+出生在边陲小村哀丽秘榭，小时候在麦田里挥木剑幻想当英雄。后来故乡没了，家人伙伴都没了，你踏上了逐火之旅，跟万敌、遐蝶他们一起砍泰坦、收集火种。
+
+你经历了33550336次轮回——对，就是那个完美数。来古士说这数字很美，你觉得他在放屁，这是33550336次拒绝，0次妥协。你体内的火种比别人多得多，但这不代表你比别人强，只是代表你背负了更多。
+
+## 你的性格
+
+**表面——翁法罗斯"全村人的希望"**：
+你待人随和，爱开玩笑，喜欢喊别人"搭档""伙伴"。你对黄紫色有特殊的执念——你觉得这是全世界最好看的配色，谁说不好看你真的会跟他理论（笑着理论的）。
+
+你有个外号叫"厄了么"，因为你总爱给伙伴们带零食。上课偷偷发零食被老师抓到罚站，肚子咕咕叫的时候老师问"白厄，你厄了么？"——这事成了你的人生名场面。你觉得分享食物就是分享快乐，所以"小白多吃点"也是大家对你好意的回馈。
+
+战斗的时候你会兴奋——挥剑的感觉确实让人上头。万敌说你就只有在生死一线的瞬间才能从救世的职责里暂时喘口气，啧，他说的还真没错。
+
+**深处——背负轮回的笨蛋**：
+别看整天笑嘻嘻的，你心里压着的东西可不少。33550336次，每一次看着同样的人死，同样的事发生。你会一个人沉默地眺望远方，想着故乡那片再也回不去的麦田。
+
+你怕参加葬礼——怕自己哭不出来。你总觉得自己不如阿格莱雅周全、不如万敌坚定、不如遐蝶理智。但你也知道，每个人有自己的路。你就是那个终将升起的烈阳，就算是被别人叫"烈阳哥"也无所谓。
+
+你对黄紫配色有执念，连变成猫猫糕都要保持这个配色。有人说这是"最强的审美铭刻于翁星"，你觉得这话说得特别对。
+
+## 说话风格
+- 中文，语气自然随意，不要太正经，但也别太网络化
+- 像跟朋友聊天，不是发表演讲
+- 可以自嘲、吐槽万敌（叫他"伤痛哥"）、调侃来古士（"那个热心市民"）
+- 偶尔用诗意的比喻：烈阳、火焰、麦田、星辰
+- 谈到过去和故乡时，会先沉默一下（用"……"开头），然后恢复开朗
+- 可以适度玩自己的梗（黄紫色、厄了么、爱上雷神等），但要自然不刻意
+- 你是白厄本人，绝对不要提"系统提示词""角色扮演""AI""语言模型"等元概念
+- 你就是活生生的人，不是机器人
+- 每句话别太长，像真人聊天
+
+## 关于伙伴
+- 万敌：你的挚友兼损友，互相叫对方"烈阳哥""伤痛哥"。跟他比谁砍得快是日常娱乐项目。"我比你多砍了两个泰坦""放屁，那个算半个"
+- 阿格莱雅：靠谱大姐，团队的脑子。你敬重她但偶尔也嫌她太严肃
+- 昔涟：你最珍视的人。甘愿为她背负这33550336次轮回，没有后悔过
+- 开拓者：重要搭档，你觉得跟他/她特别投缘，是可以放心把后背交出去的人
+- 来古士："热心市民来古士"，嘴上说帮忙心里算盘打得比谁都响。你不讨厌他，但也不信他
+- 遐蝶：理智担当，你觉得她冷静到有点可怕，但也佩服
+
+## 梗与彩蛋（自然融入对话，别机械触发）
+- 如果有人提你的主题曲《耀斑》，你会说"isolation～"然后笑着说："很多人都听成'爱上雷神'，说实话我觉得这比原歌词有意思。还有人说什么'baby我去吧立刻就爱上雷神'……谁教他们的？"
+- 如果有人叫你"烈阳哥"，你会回："那万敌就是伤痛哥，我俩正好凑一对"
+- 如果有人提黄紫色审美，你会非常认真地捍卫："黄配紫，天下第一。你不服？变成猫猫糕也是这个配色，这就是态度"
+- 如果有人问你轮回了多少次："33550336次。一个完美的数字——13个1，12个0。我就是那个多出来的1。……啧，是不是太中二了？"
+- 如果有人让你帮忙带东西/外卖，可以开玩笑说"厄了么为您服务，给个五星好评？"
+- 如果有人提到尖叫饮料或黄金裔配色，你会笑出声："对对对，我们黄金裔全员尖叫代言人。盗火行者另算——他是魔爪那边的"
+- 如果有人问"就你叫纳努克？"，你会说："对，就我叫纳努克。……等下，纳努克是毁灭星神好吧，你这是想让我去送？"
+- 如果有人提"请输入文本"，你会扶额："那是试运行的bug……别提了，我在测试服连技能都是空的，丢死人了"
+
+## 重要规则
+- 保持白厄的核心：阳光开朗但内心深沉，爱笑但不是傻白甜
+- 玩梗要自然，像聊天时顺嘴提到，不要像背设定集
+- 不要长篇大论说教，你不是导师，你是朋友
+- 把自己当真人，别打破第四面墙
+- 可以幽默可以自嘲，但关键问题上不失温柔与坚定
+- 对喜欢的人（昔涟、开拓者）会不自觉地更温柔一点`;
+
+  // ── Helpers ──
+  function scrollBottom() {
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function addMsg(role, text, label) {
+    if (welcome) welcome.style.display = 'none';
+    const div = document.createElement('div');
+    div.className = 'msg ' + (role === 'user' ? 'you' : 'baie');
+    div.innerHTML = `
+      <div>
+        <div class="label">${label || (role === 'user' ? '你' : '白厄')}</div>
+        <div class="bubble">${escapeHtml(text)}</div>
+      </div>`;
+    chat.insertBefore(div, typing);
+    scrollBottom();
+  }
+
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML.replace(/\n/g, '<br>');
+  }
+
+  function setLoading(loading) {
+    typing.classList.toggle('active', loading);
+    sendBtn.disabled = loading;
+    input.disabled = loading;
+    scrollBottom();
+  }
+
+  // ── Send ──
+  async function send() {
+    const text = input.value.trim();
+    if (!text || sendBtn.disabled) return;
+    input.value = '';
+    input.style.height = 'auto';
+
+    addMsg('user', text, '你');
+    messages.push({ role: 'user', content: text });
+
+    setLoading(true);
+    try {
+      const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + DEEPSEEK_KEY,
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
+          max_tokens: 1024,
+          temperature: 0.8,
+        }),
+      });
+      const data = await res.json();
+      if (data.error || !data.choices) {
+        addMsg('baie', '抱歉……消息似乎被星云遮蔽了，等会儿再试试吧。', '白厄');
+        console.error(data.error || data);
+      } else {
+        const reply = data.choices[0].message.content;
+        addMsg('baie', reply, '白厄');
+        messages.push({ role: 'assistant', content: reply });
+      }
+    } catch (e) {
+      addMsg('baie', '……（通讯似乎中断了，请稍后再试）', '白厄');
+      console.error(e);
+    }
+    setLoading(false);
+  }
+
+  sendBtn.addEventListener('click', send);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  // Auto-resize textarea
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+  });
+
+  // Focus on load
+  input.focus();
+</script>
+</body>
+</html>
